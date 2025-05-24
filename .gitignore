@@ -1,0 +1,34 @@
+# Node modules
+node_modules/
+
+# dotenv environment variables
+.env
+
+# Logs
+logs/ch
+*.log
+npm-debug.log*
+
+# OS junk files
+.DS_Store
+Thumbs.db
+
+# Service Account JSON keys (Google Cloud, etc.)
+backend/config/calendar-service-account.json
+
+
+# Database dump files
+*.sql
+
+# Build output (if applicable)
+dist/
+build/
+
+# VS Code settings
+.vscode/
+
+# Misc
+.idea/
+
+
+backend/config/google-service-account.json
