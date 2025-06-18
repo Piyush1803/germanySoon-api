@@ -31,4 +31,5 @@ build/
 .idea/
 
 
-backend/config/google-service-account.json
+# Google key
+/Users/piyushdhanwal_18/Documents/deutschland/deutschland-backend/src/keys/*
