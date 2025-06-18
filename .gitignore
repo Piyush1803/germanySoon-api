@@ -13,10 +13,6 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
-# Service Account JSON keys (Google Cloud, etc.)
-backend/config/calendar-service-account.json
-
-
 # Database dump files
 *.sql
 
@@ -30,6 +26,5 @@ build/
 # Misc
 .idea/
 
-
-# Google key
-/Users/piyushdhanwal_18/Documents/deutschland/deutschland-backend/src/keys/
+# Google Cloud keys
+src/keys/
