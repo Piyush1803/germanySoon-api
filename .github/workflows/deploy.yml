@@ -1,0 +1,28 @@
+name: Deploy NestJS Backend
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: SSH & Deploy to VPS
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT || 22 }}
+          script: |
+            cd /var/www/germanySoon-api
+            git pull origin main
+            npm install --production
+            npm run build
+            pm2 restart germanySoon-api || pm2 start dist/main.js --name germanySoon-api
