@@ -10,6 +10,7 @@ export const getTypeOrmConfig = (
   username: config.get<string>('DB_USERNAME'),
   password: config.get<string>('DB_PASSWORD'),
   database: config.get<string>('DB_NAME'),
+  logging: ['error'],
   autoLoadEntities: true, // Automatically load all entities
-  synchronize: true, // Automatically sync entity schemas (use false in production)
+  synchronize: false, // Automatically sync entity schemas (use false in production)
 });
