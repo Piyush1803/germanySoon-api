@@ -11,5 +11,6 @@ import { MailModule } from 'src/mail/mail.module';
   CalendarModule,MailModule],
   controllers: [AppointmentController],
   providers: [AppointmentService],
+  exports: [AppointmentService],
 })
 export class AppointmentModule {}
