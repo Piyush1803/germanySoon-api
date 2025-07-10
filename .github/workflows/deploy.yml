@@ -1,4 +1,4 @@
-name: Deploy NestJS Backend
+name: Deploy backend to VPS
 
 on:
   push:
@@ -11,18 +11,17 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v3
 
-      - name: SSH & Deploy to VPS
+      - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.KEY }}
-          port: ${{ secrets.PORT || 22 }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd /var/www/germanySoon-api
             git pull origin main
-            npm install --production
+            npm install
             npm run build
-            pm2 restart germanySoon-api || pm2 start dist/main.js --name germanySoon-api
+            pm2 restart germanySoon-api || pm2 start dist/src/main.js --name germanySoon-api

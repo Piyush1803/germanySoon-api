@@ -23,15 +23,23 @@ export class AppointmentService {
       .distinct(true)
       .getRawMany();
 
-    return results.map(r => r.date);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return results
+      .map(r => r.date)
+      .filter(dateStr => {
+        const dateObj = new Date(dateStr);
+        return dateObj >= today;
+      });
   }
 
   // Get available slots for a date
   async getAvailableSlots(date: string): Promise<Appointment[]> {
     const start = new Date(`${date}T00:00:00`);
     const end = new Date(`${date}T23:59:59`);
+    const now = new Date();
 
-    return this.appointmentRepo.find({
+    let slots = await this.appointmentRepo.find({
       where: {
         startTime: Between(start, end),
         isBooked: false,
@@ -39,6 +47,13 @@ export class AppointmentService {
       select: ['id', 'startTime'],
       order: { startTime: 'ASC' },
     });
+
+    // If the date is today, filter out slots that are in the past
+    if (start.toDateString() === now.toDateString()) {
+      slots = slots.filter(slot => new Date(slot.startTime) >= now);
+    }
+
+    return slots;
   }
 
   // Book a slot
@@ -111,6 +126,10 @@ export class AppointmentService {
     }
 
     return { message: 'Appointment booked and calendar event created.' };
+  }
+
+  async getSlotDetails(id: number): Promise<Appointment | null> {
+    return await this.appointmentRepo.findOne({ where: { id } });
   }
 }
 

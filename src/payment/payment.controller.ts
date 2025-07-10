@@ -1,14 +1,19 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Body, Req, Res } from '@nestjs/common';
 import { PaymentService } from './payment.service';
-import { CreatePaymentDto } from './dto/create-payment.dto';
-import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { CreateCheckoutSessionDto } from './dto/create-payment.dto';
+import { Request, Response } from 'express';
 
-@Controller('payment')
+@Controller('payments')
 export class PaymentController {
-  constructor(private readonly paymentService: PaymentService) {}
+  constructor(private readonly paymentService: PaymentService) { }
 
   @Post('create-checkout-session')
-  async createSession(@Body() body: { email: string; amount: number }) {
-    return this.paymentService.createCheckoutSession(body.amount, body.email);
+  async createCheckoutSession(@Body() dto: CreateCheckoutSessionDto) {
+    return this.paymentService.createCheckoutSession(dto);
   }
+  @Post('webhook')
+  async handleStripeWebhook(@Req() req: Request, @Res() res: Response) {
+    return this.paymentService.handleStripeWebhook(req, res);
+  }
+
 }
