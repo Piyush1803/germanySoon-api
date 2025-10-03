@@ -10,7 +10,7 @@ export class AppointmentService {
   constructor(
     @InjectRepository(Appointment)
     private readonly appointmentRepo: Repository<Appointment>,
-    private readonly calendarservice: CalendarService,
+    private readonly calendarService: CalendarService,
     private readonly mailService: MailService,
   ) { }
 
@@ -81,14 +81,12 @@ export class AppointmentService {
     const startTime = new Date(updatedAppointment.startTime);
     const endTime = new Date(startTime.getTime() + 3 * 60 * 60 * 1000);
 
-    await this, this.calendarservice.createEvent({
+    await this.calendarService.createEvent({
       summary: `Appointment with ${name}`,
       description: `Email: ${email}`,
       startTime: startTime.toISOString(),
       endTime: endTime.toISOString(),
     });
-
-
 
     try {
       await this.mailService.sendMail(

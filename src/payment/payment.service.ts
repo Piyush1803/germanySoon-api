@@ -18,7 +18,7 @@ export class PaymentService {
     if (!secretKey) {
       throw new Error('STRIPE_SECRET_KEY is not set in environment variables');
     }
-    this.stripe = new Stripe(secretKey, { apiVersion: '2025-05-28.basil' });
+    this.stripe = new Stripe(secretKey);
   }
 
   async createCheckoutSession(dto: CreateCheckoutSessionDto) {
@@ -48,13 +48,13 @@ export class PaymentService {
                   email,
                 },
               },
-              unit_amount: 5000, // $50.00 in cents
+              unit_amount: 5000,
             },
             quantity: 1,
           },
         ],
         mode: 'payment',
-        success_url: `${this.configService.get<string>('FRONTEND_URL')}/?payment=success`,
+        success_url: `${this.configService.get<string>('FRONTEND_URL')}/`,
         cancel_url: `${this.configService.get<string>('FRONTEND_URL')}/payment-cancel`,
         metadata: {
           slotId: slotId.toString(),
