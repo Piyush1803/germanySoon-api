@@ -166,6 +166,48 @@ export class PaymentService {
           res.status(500).send('Booking failed');
           return;
         }
+      } else if (event.type === 'payment_intent.succeeded') {
+        // Fallback handler if Stripe sends payment_intent.succeeded instead of checkout.session.completed
+        const paymentIntent = event.data.object as Stripe.PaymentIntent;
+        const paymentIntentId = paymentIntent.id;
+        this.logger.log(`Handling payment_intent.succeeded for ${paymentIntentId}`);
+
+        // Find the checkout session associated with this payment intent
+        const sessions = await this.stripe.checkout.sessions.list({ payment_intent: paymentIntentId, limit: 1 });
+        if (!sessions.data.length) {
+          this.logger.warn(`No checkout session found for payment_intent ${paymentIntentId}`);
+          res.status(200).json({ received: true, skipped: true });
+          return;
+        }
+
+        const session = sessions.data[0];
+        const paymentStatus = session.payment_status;
+        this.logger.log(`Derived session ${session.id} from payment_intent ${paymentIntentId} payment_status=${paymentStatus}`);
+        if (paymentStatus !== 'paid') {
+          this.logger.warn(`Skipping booking for session ${session.id} (from PI) because payment_status=${paymentStatus}`);
+          res.status(200).json({ received: true, skipped: true });
+          return;
+        }
+
+        const metadata = session.metadata || {};
+        const name = metadata['name'];
+        const email = metadata['email'];
+        const slotId = metadata['slotId'];
+        this.logger.log(`Extracted metadata from session ${session.id}: name=${name ?? 'n/a'} email=${email ?? 'n/a'} slotId=${slotId ?? 'n/a'}`);
+        if (!name || !email || !slotId) {
+          this.logger.error(`Missing metadata in session ${session.id} (from PI)`);
+          res.status(400).send('Missing metadata in session');
+          return;
+        }
+
+        try {
+          await this.appointmentService.bookAppointment(parseInt(slotId, 10), name, email);
+          this.logger.log(`✅ Appointment booked successfully for ${name} (${email}) [slotId=${slotId}] via payment_intent.succeeded`);
+        } catch (bookingError: any) {
+          this.logger.error(`Booking failed for slotId=${slotId} (from PI): ${bookingError?.message ?? bookingError}`);
+          res.status(500).send('Booking failed');
+          return;
+        }
       } else {
         this.logger.log(`Unhandled event type: ${event.type}`);
       }
