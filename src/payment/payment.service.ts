@@ -21,6 +21,18 @@ export class PaymentService {
     this.stripe = new Stripe(secretKey);
   }
 
+  private getNormalizedFrontendUrl(): string {
+    const configuredUrl = (this.configService.get<string>('FRONTEND_URL') || '').trim();
+    const base = configuredUrl.length > 0 ? configuredUrl : 'https://germanysoon.com';
+    const hasScheme = /^https?:\/\//i.test(base);
+    const withScheme = hasScheme ? base : `https://${base}`;
+    // Only trim a trailing slash when there is at least one path segment after the domain
+    // Keep "https://domain" format without a trailing slash
+    return withScheme.endsWith('/') && !/^https?:\/\/$/i.test(withScheme)
+      ? withScheme.slice(0, -1)
+      : withScheme;
+  }
+
   async createCheckoutSession(dto: CreateCheckoutSessionDto) {
     const { slotId, name, email } = dto;
 
@@ -32,6 +44,7 @@ export class PaymentService {
       }
 
       // Create Stripe checkout session
+      const baseFrontendUrl = this.getNormalizedFrontendUrl();
       const session = await this.stripe.checkout.sessions.create({
         payment_method_types: ['card'],
         customer_email: email,
@@ -54,8 +67,8 @@ export class PaymentService {
           },
         ],
         mode: 'payment',
-        success_url: `${this.configService.get<string>('FRONTEND_URL')}/`,
-        cancel_url: `${this.configService.get<string>('FRONTEND_URL')}/payment-cancel`,
+        success_url: `${baseFrontendUrl}/?payment=success`,
+        cancel_url: `${baseFrontendUrl}/payment-cancel`,
         metadata: {
           slotId: slotId.toString(),
           name,
@@ -65,7 +78,9 @@ export class PaymentService {
         billing_address_collection: 'required',
       });
 
-      this.logger.log(`Checkout session created for slot ${slotId} by ${email}`);
+      this.logger.log(
+        `Checkout session created for slot ${slotId} by ${email}. success_url=${baseFrontendUrl}/?payment=success, cancel_url=${baseFrontendUrl}/payment-cancel`,
+      );
       return {
         sessionId: session.id,
         url: session.url,
