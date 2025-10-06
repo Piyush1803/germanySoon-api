@@ -16,7 +16,6 @@ export class AppointmentController {
   async getSlots(@Query('date') date: string) {
     const slots = await this.appointmentService.getAvailableSlots(date);
     return slots;
-
   }
 
   @Post('book')
