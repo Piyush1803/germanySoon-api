@@ -22,15 +22,28 @@ export class PaymentService {
   }
 
   private getNormalizedFrontendUrl(): string {
-    const configuredUrl = (this.configService.get<string>('FRONTEND_URL') || '').trim();
-    const base = configuredUrl.length > 0 ? configuredUrl : 'https://germanysoon.com';
-    const hasScheme = /^https?:\/\//i.test(base);
-    const withScheme = hasScheme ? base : `https://${base}`;
-    // Only trim a trailing slash when there is at least one path segment after the domain
-    // Keep "https://domain" format without a trailing slash
-    return withScheme.endsWith('/') && !/^https?:\/\/$/i.test(withScheme)
-      ? withScheme.slice(0, -1)
-      : withScheme;
+    const raw = (this.configService.get<string>('FRONTEND_URL') || '').trim();
+    let value = raw.length > 0 ? raw : 'https://germanysoon.com';
+
+    // Handle scheme-relative URLs like //example.com
+    if (/^\/\//.test(value)) {
+      value = `https:${value}`;
+    }
+    // Fix malformed schemes like "https:example.com" or "https:germanysoon.com"
+    if (/^https?:[^/]/i.test(value)) {
+      value = value.replace(/^https?:/i, 'https://');
+    }
+    // Ensure a scheme exists
+    if (!/^https?:\/\//i.test(value)) {
+      value = `https://${value}`;
+    }
+    // Collapse accidental double scheme if present
+    value = value.replace(/^(https?:\/\/)(https?:\/\/)+/i, '$1');
+    // Remove trailing slash (but keep "https://domain" intact)
+    if (value.endsWith('/') && !/^https?:\/\/$/i.test(value)) {
+      value = value.slice(0, -1);
+    }
+    return value;
   }
 
   async createCheckoutSession(dto: CreateCheckoutSessionDto) {
