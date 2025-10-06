@@ -116,7 +116,7 @@ export class PaymentService {
     const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET || this.configService.get<string>('STRIPE_WEBHOOK_SECRET');
 
     if (!sig || !endpointSecret) {
-      this.logger.error('Missing Stripe signature or endpoint secret');
+      this.logger.error(`Missing Stripe signature or endpoint secret. hasSig=${Boolean(sig)} hasSecret=${Boolean(endpointSecret)}`);
       res.status(400).send('Missing Stripe signature or endpoint secret');
       return;
     }
@@ -130,7 +130,7 @@ export class PaymentService {
       return;
     }
 
-    this.logger.log(`Received webhook event: ${event.type}`);
+    this.logger.log(`Received webhook event: ${event.type} id=${event.id}`);
 
     try {
       if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
@@ -151,14 +151,21 @@ export class PaymentService {
         const name = metadata['name'];
         const email = metadata['email'];
         const slotId = metadata['slotId'];
+        this.logger.log(`Extracted metadata for session ${sessionId}: name=${name ?? 'n/a'} email=${email ?? 'n/a'} slotId=${slotId ?? 'n/a'}`);
         if (!name || !email || !slotId) {
           this.logger.error(`Missing metadata in checkout session ${sessionId}`);
           res.status(400).send('Missing metadata in session');
           return;
         }
 
-        await this.appointmentService.bookAppointment(parseInt(slotId, 10), name, email);
-        this.logger.log(`✅ Appointment booked successfully for ${name} (${email}) [slotId=${slotId}]`);
+        try {
+          await this.appointmentService.bookAppointment(parseInt(slotId, 10), name, email);
+          this.logger.log(`✅ Appointment booked successfully for ${name} (${email}) [slotId=${slotId}]`);
+        } catch (bookingError: any) {
+          this.logger.error(`Booking failed for slotId=${slotId}: ${bookingError?.message ?? bookingError}`);
+          res.status(500).send('Booking failed');
+          return;
+        }
       } else {
         this.logger.log(`Unhandled event type: ${event.type}`);
       }
