@@ -88,8 +88,12 @@ export class PaymentService {
         currency: session.currency,
       };
     } catch (error) {
-      this.logger.error(`Error creating checkout session: ${error.message}`);
-      throw new BadRequestException('Failed to create payment session');
+      const asAny = error as any;
+      const stripeMessage = asAny?.raw?.message || asAny?.message || 'Unknown error';
+      const stripeParam = asAny?.raw?.param;
+      const stripeCode = asAny?.raw?.code;
+      this.logger.error(`Error creating checkout session: message=${stripeMessage} code=${stripeCode ?? 'n/a'} param=${stripeParam ?? 'n/a'}`);
+      throw new BadRequestException(stripeMessage || 'Failed to create payment session');
     }
   }
 
@@ -116,19 +120,34 @@ export class PaymentService {
     this.logger.log(`Received webhook event: ${event.type}`);
 
     try {
-      if (event.type === 'checkout.session.completed') {
+      if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
         const session = event.data.object as Stripe.Checkout.Session;
-        const metadata = session.metadata || {};
+        const sessionId = session.id;
+        // Retrieve the latest session to confirm status
+        const latestSession = await this.stripe.checkout.sessions.retrieve(sessionId);
+        const paymentStatus = latestSession.payment_status;
+        this.logger.log(`Checkout session ${sessionId} payment_status=${paymentStatus}`);
+
+        if (paymentStatus !== 'paid') {
+          this.logger.warn(`Skipping booking for session ${sessionId} because payment_status=${paymentStatus}`);
+          res.status(200).json({ received: true, skipped: true });
+          return;
+        }
+
+        const metadata = latestSession.metadata || {};
         const name = metadata['name'];
         const email = metadata['email'];
         const slotId = metadata['slotId'];
         if (!name || !email || !slotId) {
-          this.logger.error('Missing metadata in checkout session');
+          this.logger.error(`Missing metadata in checkout session ${sessionId}`);
           res.status(400).send('Missing metadata in session');
           return;
         }
+
         await this.appointmentService.bookAppointment(parseInt(slotId, 10), name, email);
-        this.logger.log(`✅ Appointment booked successfully for ${name} (${email})`);
+        this.logger.log(`✅ Appointment booked successfully for ${name} (${email}) [slotId=${slotId}]`);
+      } else {
+        this.logger.log(`Unhandled event type: ${event.type}`);
       }
     } catch (error) {
       this.logger.error(`Error processing webhook: ${error.message}`);
