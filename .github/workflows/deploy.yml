@@ -18,10 +18,11 @@ jobs:
         with:
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
-          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          key: ${{ secrets.KEY }}
           script: |
-            cd /var/www/germanySoon-api
-            git pull origin main
-            npm install
+            cd ${{ secrets.PROJECT_PATH }}
+            git fetch origin main
+            git reset --hard origin/main
+            npm install --production
             npm run build
-            pm2 restart germanySoon-api || pm2 start dist/src/main.js --name germanySoon-api
+            pm2 restart germanySoon-api || pm2 start dist/main.js --name germanySoon-api
