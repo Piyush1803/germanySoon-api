@@ -12,8 +12,11 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
   // app.useGlobalPipes(new ValidationPipe());
+  const configuredOrigin = (process.env.FRONTEND_URL || '').trim();
+  const hasScheme = /^https?:\/\//i.test(configuredOrigin);
+  const normalizedOrigin = (hasScheme ? configuredOrigin : `https://${configuredOrigin}`).replace(/\/$/, '');
   app.enableCors({
-    origin: process.env.FRONTEND_URL,
+    origin: normalizedOrigin || undefined,
     credentials: true,
   });
 
