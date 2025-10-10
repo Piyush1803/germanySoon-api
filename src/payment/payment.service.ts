@@ -74,7 +74,7 @@ export class PaymentService {
                   email,
                 },
               },
-              unit_amount: 5000,
+              unit_amount: 500,
             },
             quantity: 1,
           },
