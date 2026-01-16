@@ -8,6 +8,7 @@ import { AppointmentModule } from './appointment/appointment.module';
 import { CalendarModule } from './calendar/calendar.module';
 import { MailModule } from './mail/mail.module';
 import { PaymentModule } from './payment/payment.module';
+import { BigSpoonModule } from './big-spoon/big-spoon.module';
 
 @Module({
   imports: [
@@ -23,6 +24,7 @@ import { PaymentModule } from './payment/payment.module';
     CalendarModule,
     MailModule,
     PaymentModule,
+    BigSpoonModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -12,13 +12,26 @@ async function bootstrap() {
   app.setGlobalPrefix('api');
   app.use('/api/payments/webhook', express.raw({ type: 'application/json' }));
   // app.useGlobalPipes(new ValidationPipe());
-  let configuredOrigin = (process.env.FRONTEND_URL || '').trim();
-  if (/^\/\//.test(configuredOrigin)) configuredOrigin = `https:${configuredOrigin}`;
-  if (/^https?:[^/]/i.test(configuredOrigin)) configuredOrigin = configuredOrigin.replace(/^https?:/i, 'https://');
-  if (!/^https?:\/\//i.test(configuredOrigin)) configuredOrigin = `https://${configuredOrigin}`;
-  const normalizedOrigin = configuredOrigin.replace(/^(https?:\/\/)(https?:\/\/)+/i, '$1').replace(/\/$/, '');
+
+  // Helper function to normalize origin URLs
+  const normalizeOrigin = (origin: string): string | null => {
+    if (!origin) return null;
+    let normalized = origin.trim();
+    if (/^\/\//.test(normalized)) normalized = `https:${normalized}`;
+    if (/^https?:[^/]/i.test(normalized)) normalized = normalized.replace(/^https?:/i, 'https://');
+    if (!/^https?:\/\//i.test(normalized)) normalized = `https://${normalized}`;
+    normalized = normalized.replace(/^(https?:\/\/)(https?:\/\/)+/i, '$1').replace(/\/$/, '');
+    return normalized || null;
+  };
+
+  // Get and normalize both frontend URLs
+  const allowedOrigins: (string | null)[] = [
+    normalizeOrigin(process.env.FRONTEND_URL || ''),
+    normalizeOrigin(process.env.BIGGSPOON_FRONTEND_URL || ''),
+  ].filter((origin): origin is string => origin !== null);
+
   app.enableCors({
-    origin: normalizedOrigin || undefined,
+    origin: allowedOrigins.length > 0 ? allowedOrigins : undefined,
     credentials: true,
   });
 
